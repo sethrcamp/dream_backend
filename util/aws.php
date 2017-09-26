@@ -80,17 +80,6 @@ function updateDataBase($bucket){
     }
     var_dump("s3Pics: ".$toDump);
 
-    $toDump = "";
-    foreach($all_db_groups as $pic) {
-        $toDump .= $pic['name']." ";
-    }
-    var_dump("dbPics: ".$toDump);
-
-    $toDump = "";
-    foreach($all_s3_groups as $pic) {
-        $toDump .= $pic['name']." ";
-    }
-    var_dump("s3Pics: ".$toDump);
 
     $pictures_to_delete = array_udiff($all_db_pictures, $all_s3_pictures, function($a, $b) {
         return strcmp($a['name'], $b['name']);
@@ -100,18 +89,15 @@ function updateDataBase($bucket){
     });
 
 
-//    var_dump($pictures_to_delete, $groups_to_delete);die();
+    var_dump($pictures_to_delete, $groups_to_delete);die();
     foreach($groups_to_delete as $group_to_delete) {
-        var_dump("category");
         $category_to_delete = Category::getByName($group_to_delete['name']);
         Category::delete($category_to_delete['id']);
     }
     foreach($pictures_to_delete as $picture_to_delete) {
-        var_dump("picture");
         Picture::delete($picture_to_delete['id']);
     }
     foreach($groups_to_delete as $group_to_delete) {
-        var_dump("group");
         Group::delete($group_to_delete['id']);
     }
 
