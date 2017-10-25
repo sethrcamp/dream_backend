@@ -33,19 +33,22 @@ function updateDataBase($bucket){
             if(sizeof($found_groups) == 0) {
                 preg_match('~^[^/]+(?=/)~i', $object['Key'], $found_groups);
             } else {
-                var_dump("category: ".$object['Key']);
                 $isCategory = true;
             }
 
+
             $group = Group::getByName($found_groups[0]);
-            $picture = Picture::getByName($found_pictures[0]);
 
             if(!$group) {
                 $group = Group::create(["name" => $found_groups[0]]);
                 $picture = Picture::create(["name" => $found_pictures[0], "group_id" => $group['id'], "description" => null]);
-            } else if(!$picture) {
-                $picture = Picture::create(["name" => $found_pictures[0], "group_id" => $group['id'], "description" => null]);
+            } else {
+                $picture = Picture::getByNameAndGroup($found_pictures[0], $group['id']);
+                if(!$picture) {
+                    $picture = Picture::create(["name" => $found_pictures[0], "group_id" => $group['id'], "description" => null]);
+                }
             }
+
 
             if(!in_array($group, $all_s3_groups))
                 $all_s3_groups[] = $group;
@@ -53,13 +56,16 @@ function updateDataBase($bucket){
 
             if($isCategory) {
                 $category = Category::getByName($found_groups[0]);
+                $main_picture = [];
+                preg_match("~^MAIN_~", $picture['name'], $main_picture);
                 if(!$category) {
-                    $main_picture = [];
-                    preg_match("~^MAIN_~", $picture['name'], $main_picture);
-                    if(sizeof($main_picture) != 0) {
-                        var_dump("here?");
+                    if(sizeof($main_picture) != 0)
                         Category::create(["name" => $found_groups[0], "picture_id" => $picture['id']]);
-                    }
+                    else
+                        Category::create(["name" => $found_groups[0], "picture_id" => null]);
+                } else {
+                    if(sizeof($main_picture) != 0)
+                        Category::update($category['id'], ["name" => $found_groups[0], "picture_id" => $picture['id']]);
                 }
             }
         }
@@ -89,7 +95,7 @@ function updateDataBase($bucket){
     });
 
 
-    var_dump($pictures_to_delete, $groups_to_delete);die();
+//    var_dump($pictures_to_delete, $groups_to_delete);die();
     foreach($groups_to_delete as $group_to_delete) {
         $category_to_delete = Category::getByName($group_to_delete['name']);
         Category::delete($category_to_delete['id']);

@@ -68,6 +68,23 @@ class Picture {
         return $response;
     }
 
+    public static function getByNameAndGroup($name, $groupId) {
+
+        $db = DB::getInstance();
+
+        $statement = $db->prepare("
+            SELECT *
+            FROM pictures
+            WHERE name = ?
+            AND group_id = ?
+        ");
+        $statement->execute([$name, $groupId]);
+
+        $response = $statement->fetch();
+
+        return $response;
+    }
+
     public static function update($id, $data) {
         $db = DB::getInstance();
 
