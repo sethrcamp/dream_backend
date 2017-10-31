@@ -96,11 +96,11 @@ class PictureController {
         foreach($pictures as $picture) {
             $group = Group::getById($picture['group_id']);
             $category = Category::getByName($group['name']);
-
             if(!$category) {
                 $formatted_pictures[$group['name']][] =$picture;
             } else {
-                $formatted_pictures['categories'][$group['name']][] = $picture;
+                if($category["picture_id"] != null)
+                    $formatted_pictures['categories'][$group['name']][] = $picture;
             }
         }
 

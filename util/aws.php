@@ -21,24 +21,36 @@ function updateDataBase($bucket){
     $objects = $s3Client->listObjects(["Bucket"=>$bucket])["Contents"];
     $all_s3_pictures = [];
     $all_s3_groups = [];
+
     foreach($objects as $object){
         $found_pictures = [];
         preg_match('~(?:[^/]+)(?:\.)(?:png|jpg|jpeg|svg)$~i', $object['Key'], $found_pictures);
 
         if(sizeof($found_pictures) > 0) {
+
             $isCategory = false;
             $found_groups = [];
-            preg_match('~(?<=/)\S+(?=/)~i', $object['Key'], $found_groups);
+            preg_match('~(?<=/).+(?=/)~i', $object['Key'], $found_groups);
 
             if(sizeof($found_groups) == 0) {
                 preg_match('~^[^/]+(?=/)~i', $object['Key'], $found_groups);
             } else {
                 $isCategory = true;
+                $category_group = Group::getByName("categories");
+                if(!$category_group) {
+                    $category_group = Group::create(["name" => "categories"]);
+                }
+                if(!in_array($category_group, $all_s3_groups))
+                    $all_s3_groups[] = $category_group;
             }
 
 
             $group = Group::getByName($found_groups[0]);
-
+//            var_dump($object["Key"]);
+//            var_dump($found_groups[0]);
+//            var_dump($found_pictures[0]);
+//            var_dump("----------------------");
+//            continue;
             if(!$group) {
                 $group = Group::create(["name" => $found_groups[0]]);
                 $picture = Picture::create(["name" => $found_pictures[0], "group_id" => $group['id'], "description" => null]);
@@ -70,21 +82,34 @@ function updateDataBase($bucket){
             }
         }
     }
+//    die();
 
     $all_db_pictures = Picture::getAll();
     $all_db_groups = Group::getAll();
 
-    $toDump = "";
-    foreach($all_db_pictures as $pic) {
-        $toDump .= $pic['name']." ";
-    }
-    var_dump("dbPics: ".$toDump);
+//    $toDump = "";
+//    foreach($all_db_pictures as $pic) {
+//        $toDump .= $pic['name']." ";
+//    }
+//    var_dump("dbPics: ".$toDump);
+//
+//    $toDump = "";
+//    foreach($all_s3_pictures as $pic) {
+//        $toDump .= $pic['name']." ";
+//    }
+//    var_dump("s3Pics: ".$toDump);
 
     $toDump = "";
-    foreach($all_s3_pictures as $pic) {
-        $toDump .= $pic['name']." ";
+    foreach($all_db_groups as $group) {
+        $toDump .= $group['name']." ";
     }
-    var_dump("s3Pics: ".$toDump);
+    var_dump("dbGroups: ".$toDump);
+
+    $toDump = "";
+    foreach($all_s3_groups as $group) {
+        $toDump .= $group['name']." ";
+    }
+    var_dump("s3Groups: ".$toDump);
 
 
     $pictures_to_delete = array_udiff($all_db_pictures, $all_s3_pictures, function($a, $b) {
@@ -93,7 +118,6 @@ function updateDataBase($bucket){
     $groups_to_delete = array_udiff($all_db_groups, $all_s3_groups, function($a, $b) {
         return strcmp($a['name'], $b['name']);
     });
-
 
 //    var_dump($pictures_to_delete, $groups_to_delete);die();
     foreach($groups_to_delete as $group_to_delete) {
